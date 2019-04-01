@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+        <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+        <script>
+            $(function(){
+                const chatId = '123'
+                var socket = io.connect('http://localhost:3000', {query : 'userName=srinath'})
+                socket.emit('enter_chat', { chatId })
+                socket.emit('get_chat_list')
+                var message = $('#message');
+                var username = $('#username');
+                var send_message = $('#send_message');
+                var send_username = $('#send_username');
+                var chatroom = $('#chatroom');
+                send_username.click(function(){
+                    console.log(username.val());
+                    socket.emit('change_username', {userName: username.val()})
+                })
+                send_message.click(function(){
+                    console.log(username.val());
+                    socket.emit('message', {chatId, message: message.val(), userName: 'john'})
+                })
+                socket.on("new_message", (data) => {
+                    console.log(data);
+                    chatroom.append("<p id='message'>"+data.username + " : " + data.message + "</p>");
+                })
+                // socket.emit('add_chat', {chatId: 'hello'})
+            })
+        </script>
+        <style>
+            #send_message, #send_username {
+                padding: 10px 20px;
+                border: 1px solid #eee;
+                background-color: #fff5f5;
+                margin: 10px;
+                width: 120px;
+                text-align: center;
+            }
+            #chatroom {
+                width: 100%;
+                height: 300px;
+                overflow: hidden;
+                border: 1px solid #eee;
+                background-color: #eee;
+                margin-top: 20px;
+            }
+            .inputEle {
+                width: 100%;
+                overflow: hidden;
+            }
+            .inputEle .title{
+                width: 100%;
+            }
+            .inputEle input{
+                width: 300px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="inputEle">
+            <div class="title">Username</div>
+            <input type="text" id="username">
+        </div>
+        <div class="inputEle">
+            <div class="title">Message</div>
+            <input type="text" id="message">
+        </div>
+        
+        <div id="send_message">send_message</div>
+        <div id="send_username">send_username</div>
+        <div id="chatroom">
+            <h1>Chat Room</h1>
+        </div>
+    </body>
+</html>
