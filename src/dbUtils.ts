@@ -1,24 +1,26 @@
-const mongoClient = require('mongodb').MongoClient
+import mongoDB = require('mongodb')
+const mongoClient = mongoDB.MongoClient
 const config = require('./config')
 const { dbURL, dbName } = config
-const utils = {
+
+const dbUtils = {
     dbConnect() {
         return mongoClient.connect(dbURL, {
             useNewUrlParser : true
-        });
+        })
     },
-    getCollection(collectionName) {
+    getCollection(collectionName: string) {
         return this.dbConnect(dbURL)
-        .then(db => {
+        .then((db: mongoDB.MongoClient) => {
             return db.db(dbName).collection(collectionName)
         })
-        .catch(err => {
+        .catch((err: mongoDB.MongoError) => {
             return err
         })
     },
-    connectDBCollection(collectionName, callback) {
+    connectDBCollection(collectionName: string, callback: Function) {
         return this.getCollection(collectionName)
-        .then(collection => {
+        .then((collection: any) => {
             if(collection && collection.code && collection.code == 'ECONNREFUSED') {
                 return 'Database cannot be connected'
             }
@@ -26,13 +28,13 @@ const utils = {
                 return callback(collection)
             }
         })
-        .catch(err => {
+        .catch((err: mongoDB.MongoError) => {
             console.log('An error occured while connecting to database')
             console.log(err)
             return err
         })
     },
-    findData(collection, query) {
+    findData(collection: mongoDB.Collection, query: Object) {
         return collection.find(query).toArray()
         .then(data => {
             console.log(data)
@@ -43,13 +45,13 @@ const utils = {
             return 'An error occured while fetching collection results'
         })
     },
-    getData(collectionName, toFind) {
+    getData(collectionName: string, toFind: Object) {
         // find data is a callback method
-        const findData = collection => {
+        const findData = (collection: mongoDB.Collection) => {
             return this.findData(collection, toFind)
         }
         return this.connectDBCollection(collectionName, findData)
     }
 }
 
-module.exports = utils
+module.exports = dbUtils

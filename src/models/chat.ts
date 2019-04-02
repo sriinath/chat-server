@@ -1,24 +1,27 @@
-const utils = require('../dbUtils')
 
+const utils = require('../dbUtils')
+import mongoDB = require('mongodb')
+import { UserChatType } from '../typings'
 const chatModel = {
-    getUserChatList(userName) {
+    getUserChatList(userName: string) {
         const toFind = { userName }
         return utils.getData('UserList', toFind)
     },
-    getUserChats(chatId) {
+    getUserChats(chatId: string) {
         const toFind = { chatId }
         return utils.getData('UserChats', toFind)
     },
-    addUserChat({ chatId, sender, message, time }) {
+    addUserChat({ chatId, sender, message, date, time }: UserChatType) {
         const chatData = {
             sender,
             message,
+            date,
             time
         }
         const toFind = { chatId }
         const toUpdate = {$push: { "chats":  chatData }}
         if(chatId) {
-            const updateData = (collection) => {
+            const updateData = (collection: mongoDB.Collection) => {
                 return collection.findOneAndUpdate(toFind, toUpdate)
                 .then(data => {
                     if(data && data.lastErrorObject && data.lastErrorObject.n > 0) {
