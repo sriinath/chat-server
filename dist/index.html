@@ -5,10 +5,12 @@
         <script src="http://code.jquery.com/jquery-latest.min.js"></script>
         <script>
             $(function(){
-                const chatId = '123'
-                var socket = io.connect('http://localhost:3000', {query : 'userName=srinath'})
-                socket.emit('enter_chat', { chatId })
+                var userName = 'srinath'
+                var chatId = ''
+                var socket = io.connect('http://localhost:3000', {query : `userName=${userName}`})
+                // socket.emit('enter_chat', { chatId })
                 socket.emit('get_chat_list')
+                socket.emit('new_chat', { recipientUserName: 'lingakumareeee' })
                 var message = $('#message');
                 var username = $('#username');
                 var send_message = $('#send_message');
@@ -20,11 +22,14 @@
                 })
                 send_message.click(function(){
                     console.log(username.val());
-                    socket.emit('message', {chatId, message: message.val(), userName: 'john'})
+                    socket.emit('message', {message: message.val(), userName })
                 })
                 socket.on("new_message", (data) => {
                     console.log(data);
                     chatroom.append("<p id='message'>"+data.username + " : " + data.message + "</p>");
+                })
+                socket.on("new_chat", (data) => {
+                    console.log(data);
                 })
                 // socket.emit('add_chat', {chatId: 'hello'})
             })

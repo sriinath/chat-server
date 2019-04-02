@@ -1,14 +1,19 @@
 import { Server } from "http"
 import io = require('socket.io')
 import { UserList } from "./typings";
-//controller imports
+// controller imports
+// import { chatController } from './controllers/chat'
+
 const chatController = require('./controllers/chat')
+const redull = require('redull')
 
 // server instance is sent after starting the server
 module.exports = (server: Server) => {
     const socketIO = io(server)
     socketIO.on('connection', socket => {
-        let userName = socket && socket.handshake && socket.handshake.query && socket.handshake.query.userName || 'Anonymous'
+        let userName = redull.getVal(socket, 'handshake.query.userName') || 'Anonymous'
+        // let userName = socket && socket.handshake && socket.handshake.query && socket.handshake.query.userName || 'Anonymous'
+        
         console.log(`new user connected ${userName}`)
         
         // get all the chats of a particular user
@@ -26,7 +31,17 @@ module.exports = (server: Server) => {
         })
     
         // when user adds a new chat
-        socket.on('add_chat', ({ chatId }) => {
+        socket.on('new_chat', ({ recipientUserName }) => {
+            // chat identifier genrated randomly
+            const identifier = Math.floor((Math.random() * 100000) + 1)
+            chatController.addRecipient(userName, { recipientUserName, chatId: identifier.toString() })
+            .then((result: any) => {
+                console.log(result)
+                socket.emit('new_chat', result)
+            })
+            .catch((err: Error) => {
+                console.log(err)
+            })
         })
     
         // when user enters the chat with another user or in group 
@@ -34,10 +49,10 @@ module.exports = (server: Server) => {
             socket.join(`${chatId}`)
         })
     
-        socket.on('change_username', (data) => {
-            console.log("change_username", data)
-            userName = data.userName;
-        })
+        // socket.on('change_username', (data) => {
+        //     console.log("change_username", data)
+        //     userName = data.userName;
+        // })
     
         socket.on('message', (data) => {
             console.log("message", data)

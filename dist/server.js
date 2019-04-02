@@ -25,11 +25,11 @@ app.use(express.static(defaultPath));
 // app.use('/chat/', chatRouter)
 app.use("/", function (req, res) {
     // const path = req.originalUrl;
+    console.log(__dirname);
     res.sendFile(__dirname + '/index.html');
 });
 const server = app.listen(3000, () => {
     console.log('app started');
-    console.log(__dirname);
 });
 // open socket connection
 socketInit(server);

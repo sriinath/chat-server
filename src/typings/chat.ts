@@ -1,17 +1,19 @@
-
 interface UserList {
-    userId: string
+    userName: string
     userMail?: string
-    starredChats: [ChatType]
-    groups: [GroupChatType]
+    chats?: [ChatType]
+    groups?: [GroupChatType]
 }
 interface ChatList {
+    owner: string
+	name: string
     chatId: string
     chats: [UserChatType]
 }
 interface ChatType {
     chatId: string
-    userName: string
+    recipientUserName: string
+    starred?: boolean
 }
 interface UserChatType {
     chatId?: string
