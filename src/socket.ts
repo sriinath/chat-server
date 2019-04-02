@@ -1,11 +1,13 @@
+import { Server } from "http"
+import io = require('socket.io')
+import { UserList } from "./typings";
 //controller imports
 const chatController = require('./controllers/chat')
 
 // server instance is sent after starting the server
-module.exports = server => {
-    const io = require('socket.io')(server);
-
-    io.on('connection', (socket) => {
+module.exports = (server: Server) => {
+    const socketIO = io(server)
+    socketIO.on('connection', socket => {
         let userName = socket && socket.handshake && socket.handshake.query && socket.handshake.query.userName || 'Anonymous'
         console.log(`new user connected ${userName}`)
         
@@ -13,10 +15,10 @@ module.exports = server => {
         socket.on('get_chat_list', () => {
             if(userName) {
                 chatController.getUserChatList(userName)
-                .then(data => {
+                .then((data: UserList) => {
                     console.log(data)
                 })
-                .catch(err => {
+                .catch((err: Error) => {
                     console.log('error logged')
                     console.log(err)
                 })
@@ -42,16 +44,16 @@ module.exports = server => {
             const { chatId, message, userName } = data
             if(chatId) {
                 chatController.addUserChat(data)
-                .then(data => {
+                .then((data: any) => {
                     if(data && data.code && data.code == 'ECONNREFUSED') {
                         console.log('Database cannot be connected')
                     }
                     else {
                         console.log(data)
-                        io.sockets.in(chatId).emit('new_message', {message: message, username: userName})
+                        socketIO.sockets.in(chatId).emit('new_message', {message: message, username: userName})
                     }
                 })
-                .catch(err => {
+                .catch((err: Error) => {
                     console.log('error logged')
                     console.log(err)
                 })

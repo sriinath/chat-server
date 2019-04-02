@@ -1,4 +1,5 @@
-const chatRouter = require('express').Router()
+import express = require('express')
+const chatRouter = express.Router()
 
 chatRouter.post('/addMessages', (req, res)=> {
     const { body } = req
