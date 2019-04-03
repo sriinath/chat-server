@@ -16,6 +16,12 @@ const chatController = {
         }
         return 'ChatId is mandatory';
     },
+    checkUserAvailability(userName) {
+        if (userName) {
+            return chat_1.chatModel.checkUserAvailability(null, userName);
+        }
+        return 'User Name is mandatory';
+    },
     addRecipient(userName, { recipientUserName, chatId }) {
         if (userName && recipientUserName && chatId) {
             return chat_1.chatModel.addRecipient(userName, { recipientUserName, chatId });
@@ -30,9 +36,8 @@ const chatController = {
         if (chatId) {
             return chat_1.chatModel.addUserChat(chatData);
         }
-        return 'ChatId is mandatory';
+        return Promise.resolve('ChatId is mandatory');
     }
 };
-exports.chatController = chatController;
 module.exports = chatController;
 //# sourceMappingURL=chat.js.map

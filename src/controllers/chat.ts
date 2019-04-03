@@ -19,6 +19,12 @@ const chatController = {
         }
         return 'ChatId is mandatory'
     },
+    checkUserAvailability(userName: string) {
+        if(userName) {
+            return chatModel.checkUserAvailability(null, userName)
+        }
+        return 'User Name is mandatory'
+    },
     addRecipient(userName: string, { recipientUserName, chatId }: ChatType) {
         if(userName && recipientUserName && chatId) {
             return chatModel.addRecipient(userName, { recipientUserName, chatId })
@@ -33,8 +39,7 @@ const chatController = {
         if(chatId) {
             return chatModel.addUserChat(chatData)
         }
-        return 'ChatId is mandatory'
+        return Promise.resolve('ChatId is mandatory')
     }
 }
-export { chatController }
 module.exports = chatController

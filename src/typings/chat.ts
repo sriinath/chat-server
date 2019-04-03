@@ -17,7 +17,7 @@ interface ChatType {
 }
 interface UserChatType {
     chatId?: string
-    sender: string
+    recipientUserName: string
     message: string
     date: Date
     time: TimeRanges

@@ -5,24 +5,27 @@
         <script src="http://code.jquery.com/jquery-latest.min.js"></script>
         <script>
             $(function(){
-                var userName = 'srinath'
-                var chatId = ''
+                const userName = 'srinath'
+                var chatId = '93495'
                 var socket = io.connect('http://localhost:3000', {query : `userName=${userName}`})
-                // socket.emit('enter_chat', { chatId })
                 socket.emit('get_chat_list')
-                socket.emit('new_chat', { recipientUserName: 'lingakumareeee' })
                 var message = $('#message');
                 var username = $('#username');
                 var send_message = $('#send_message');
                 var send_username = $('#send_username');
                 var chatroom = $('#chatroom');
-                send_username.click(function(){
+                const recipientUserName = 'srinath'
+                // send_username.click(function() {
+                //     console.log(username.val());
+                //     socket.emit('change_username', {userName: username.val()})
+                // })
+                send_username.click(function() {
                     console.log(username.val());
-                    socket.emit('change_username', {userName: username.val()})
+                    socket.emit('new_chat', {recipientUserName: username.val()})
                 })
-                send_message.click(function(){
+                send_message.click(function() {
                     console.log(username.val());
-                    socket.emit('message', {message: message.val(), userName })
+                    socket.emit('message', {message: message.val(), recipientUserName })
                 })
                 socket.on("new_message", (data) => {
                     console.log(data);
@@ -31,6 +34,8 @@
                 socket.on("new_chat", (data) => {
                     console.log(data);
                 })
+                // socket.emit('new_chat', { recipientUserName: 'karthikeyan' })
+                
                 // socket.emit('add_chat', {chatId: 'hello'})
             })
         </script>

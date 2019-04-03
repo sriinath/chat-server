@@ -11,7 +11,7 @@ const dbUtils = {
         });
     },
     getCollection(collectionName) {
-        return this.dbConnect(dbURL)
+        return dbUtils.dbConnect()
             .then((db) => {
             return db.db(dbName).collection(collectionName);
         })
@@ -20,7 +20,7 @@ const dbUtils = {
         });
     },
     connectDBCollection(collectionName, callback) {
-        return this.getCollection(collectionName)
+        return dbUtils.getCollection(collectionName)
             .then((collection) => {
             if (collection && collection.code && collection.code == 'ECONNREFUSED') {
                 return 'Database cannot be connected';
@@ -36,9 +36,8 @@ const dbUtils = {
         });
     },
     findData(collection, query) {
-        return collection.find(query).toArray()
+        return collection.find(query, { fields: { _id: 0 } }).toArray()
             .then(data => {
-            console.log(data);
             return data;
         })
             .catch(err => {
@@ -49,9 +48,9 @@ const dbUtils = {
     getData(collectionName, toFind) {
         // find data is a callback method
         const findData = (collection) => {
-            return this.findData(collection, toFind);
+            return dbUtils.findData(collection, toFind);
         };
-        return this.connectDBCollection(collectionName, findData);
+        return dbUtils.connectDBCollection(collectionName, findData);
     }
 };
 exports.dbUtils = dbUtils;

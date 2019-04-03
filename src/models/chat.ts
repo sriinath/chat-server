@@ -14,22 +14,57 @@ const chatModel = {
         const toFind = { chatId }
         return utils.getData('UserChats', toFind)
     },
+    async checkUserAvailability(collection: mongoDB.Collection, userName: string) {
+        const toFind = { userName }
+        const userAvailability = (collection: mongoDB.Collection) => {
+            return collection.find(toFind).toArray()
+            .then(data => {
+                if(data && data.length > 0) {
+                    return 'true'
+                }
+                return 'Cannot find any record for the user name provided'
+            })
+            .catch(err => {
+                console.log(err)
+                return 'An error occured while fetching collection results'
+            })
+        }
+        if(collection) {
+            return userAvailability(collection)
+        }
+        else {
+            utils.getCollection('UserList')
+            .then((collection: mongoDB.Collection) => {
+                return userAvailability(collection)
+            })
+        }
+    },
     addRecipient(userName: string, { recipientUserName, chatId }: ChatType) {
         if(userName && recipientUserName && chatId) {
-            const recipientInfo = { userName: recipientUserName }
-            const toFind = { userName, 'chats.recipientUserName': { $nin: [ recipientUserName ] } }
-            const toUpdate = { $push: { 'chats': { recipientUserName, chatId } } }
-            return utils.getCollection('UserList')
-            .then((collection: mongoDB.Collection) => {
-                return collection.find(recipientInfo).toArray()
-                .then(data => {
-                    console.log('recipient')
-                    console.log(data)
-                    if(data && data.length > 0) {
-                        return collection.findOneAndUpdate(toFind, toUpdate)
+            // const recipientInfo = { userName: recipientUserName }
+            const toFindSender = { userName, 'chats.recipientUserName': { $nin: [ recipientUserName ] } }
+            const toUpdateSender = { $push: { 'chats': { recipientUserName, chatId } } }
+            const toFindRecipient = { userName: recipientUserName, 'chats.recipientUserName': { $nin: [ userName ] } }
+            const toUpdateRecipient = { $push: { 'chats': { recipientUserName: userName, chatId } } }
+            const chatInsert = { chatId }
+            return Promise.all([
+                utils.getCollection('UserList'),
+                utils.getCollection('UserChats')
+            ])
+            .then((collection: [mongoDB.Collection, mongoDB.Collection]) => {
+                const userListCollection = collection[0]
+                const userChatCollection = collection[1]
+                return chatModel.checkUserAvailability(userListCollection, recipientUserName)
+                .then((data: any) => {
+                    if(data === 'true') {
+                        return Promise.all([
+                            userListCollection.findOneAndUpdate(toFindSender, toUpdateSender),
+                            userListCollection.findOneAndUpdate(toFindRecipient, toUpdateRecipient),
+                            userChatCollection.insertOne(chatInsert)
+                        ])
                         .then(data => {
-                            if(data && data.lastErrorObject && data.lastErrorObject.n > 0) {
-                                return data
+                            if(data && data[0] && data[1] && data[0].lastErrorObject && data[0].lastErrorObject.n > 0 && data[1].lastErrorObject && data[1].lastErrorObject.n > 0) {
+                                return 'true'
                             }
                             return 'The recipient is already added'
                         })
@@ -38,7 +73,7 @@ const chatModel = {
                             return 'An error occured while fetching collection results'
                         })        
                     }
-                    return 'Cannot find any record for the recipient user name provided'
+                    return data
                 })
                 .catch(err => {
                     console.log(err)
@@ -52,12 +87,11 @@ const chatModel = {
         }
         return 'userName & recipientUserName & chatId are mandatory'
     },
-    addUserChat({ chatId, sender, message, date, time }: UserChatType) {
+    addUserChat({ chatId, recipientUserName, message, date }: UserChatType) {
         const chatData = {
-            sender,
+            recipientUserName,
             message,
-            date,
-            time
+            date
         }
         const toFind = { chatId }
         const toUpdate = {$push: { "chats":  chatData }}
@@ -66,7 +100,6 @@ const chatModel = {
                 return collection.findOneAndUpdate(toFind, toUpdate)
                 .then(data => {
                     if(data && data.lastErrorObject && data.lastErrorObject.n > 0) {
-                        console.log(data)
                         return data
                     }
                     return 'There is no record for chatId provided '
@@ -84,4 +117,4 @@ const chatModel = {
 
 export {
     chatModel
-} 
+}
