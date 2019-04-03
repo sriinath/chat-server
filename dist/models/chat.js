@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const dbUtils_1 = require("../dbUtils");
 const chatModel = {
@@ -10,22 +18,59 @@ const chatModel = {
         const toFind = { chatId };
         return dbUtils_1.dbUtils.getData('UserChats', toFind);
     },
+    checkUserAvailability(collection, userName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const toFind = { userName };
+            const userAvailability = (collection) => {
+                return collection.find(toFind).toArray()
+                    .then(data => {
+                    if (data && data.length > 0) {
+                        return 'true';
+                    }
+                    return 'Cannot find any record for the user name provided';
+                })
+                    .catch(err => {
+                    console.log(err);
+                    return 'An error occured while fetching collection results';
+                });
+            };
+            if (collection) {
+                return userAvailability(collection);
+            }
+            else {
+                dbUtils_1.dbUtils.getCollection('UserList')
+                    .then((collection) => {
+                    return userAvailability(collection);
+                });
+            }
+        });
+    },
     addRecipient(userName, { recipientUserName, chatId }) {
         if (userName && recipientUserName && chatId) {
-            const recipientInfo = { userName: recipientUserName };
-            const toFind = { userName, 'chats.recipientUserName': { $nin: [recipientUserName] } };
-            const toUpdate = { $push: { 'chats': { recipientUserName, chatId } } };
-            return dbUtils_1.dbUtils.getCollection('UserList')
+            // const recipientInfo = { userName: recipientUserName }
+            const toFindSender = { userName, 'chats.recipientUserName': { $nin: [recipientUserName] } };
+            const toUpdateSender = { $push: { 'chats': { recipientUserName, chatId } } };
+            const toFindRecipient = { userName: recipientUserName, 'chats.recipientUserName': { $nin: [userName] } };
+            const toUpdateRecipient = { $push: { 'chats': { recipientUserName: userName, chatId } } };
+            const chatInsert = { chatId };
+            return Promise.all([
+                dbUtils_1.dbUtils.getCollection('UserList'),
+                dbUtils_1.dbUtils.getCollection('UserChats')
+            ])
                 .then((collection) => {
-                return collection.find(recipientInfo).toArray()
-                    .then(data => {
-                    console.log('recipient');
-                    console.log(data);
-                    if (data && data.length > 0) {
-                        return collection.findOneAndUpdate(toFind, toUpdate)
+                const userListCollection = collection[0];
+                const userChatCollection = collection[1];
+                return chatModel.checkUserAvailability(userListCollection, recipientUserName)
+                    .then((data) => {
+                    if (data === 'true') {
+                        return Promise.all([
+                            userListCollection.findOneAndUpdate(toFindSender, toUpdateSender),
+                            userListCollection.findOneAndUpdate(toFindRecipient, toUpdateRecipient),
+                            userChatCollection.insertOne(chatInsert)
+                        ])
                             .then(data => {
-                            if (data && data.lastErrorObject && data.lastErrorObject.n > 0) {
-                                return data;
+                            if (data && data[0] && data[1] && data[0].lastErrorObject && data[0].lastErrorObject.n > 0 && data[1].lastErrorObject && data[1].lastErrorObject.n > 0) {
+                                return 'true';
                             }
                             return 'The recipient is already added';
                         })
@@ -34,7 +79,7 @@ const chatModel = {
                             return 'An error occured while fetching collection results';
                         });
                     }
-                    return 'Cannot find any record for the recipient user name provided';
+                    return data;
                 })
                     .catch(err => {
                     console.log(err);
@@ -48,12 +93,11 @@ const chatModel = {
         }
         return 'userName & recipientUserName & chatId are mandatory';
     },
-    addUserChat({ chatId, sender, message, date, time }) {
+    addUserChat({ chatId, recipientUserName, message, date }) {
         const chatData = {
-            sender,
+            recipientUserName,
             message,
-            date,
-            time
+            date
         };
         const toFind = { chatId };
         const toUpdate = { $push: { "chats": chatData } };
@@ -62,7 +106,6 @@ const chatModel = {
                 return collection.findOneAndUpdate(toFind, toUpdate)
                     .then(data => {
                     if (data && data.lastErrorObject && data.lastErrorObject.n > 0) {
-                        console.log(data);
                         return data;
                     }
                     return 'There is no record for chatId provided ';
