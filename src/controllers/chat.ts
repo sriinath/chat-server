@@ -1,6 +1,8 @@
-import { ChatType } from "../typings";
-
-const chatModel = require('../models/chat')
+import {
+    UserChatType,
+    ChatType
+} from '../typings'
+import { chatModel } from '../models/chat'
 
 const chatController = {
     // get all the user chat list / friends list for a user
@@ -17,8 +19,16 @@ const chatController = {
         }
         return 'ChatId is mandatory'
     },
+    addRecipient(userName: string, { recipientUserName, chatId }: ChatType) {
+        if(userName && recipientUserName && chatId) {
+            return chatModel.addRecipient(userName, { recipientUserName, chatId })
+        }
+        else {
+            return 'userName & recipientUserName & chatId are mandatory'
+        }
+    },
     // add a user chat after adding user as friend
-    addUserChat(chatData : ChatType) {
+    addUserChat(chatData : UserChatType) {
         const { chatId } = chatData
         if(chatId) {
             return chatModel.addUserChat(chatData)
@@ -26,5 +36,5 @@ const chatController = {
         return 'ChatId is mandatory'
     }
 }
-
+export { chatController }
 module.exports = chatController

@@ -1,14 +1,52 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const utils = require('../dbUtils');
+const dbUtils_1 = require("../dbUtils");
 const chatModel = {
     getUserChatList(userName) {
         const toFind = { userName };
-        return utils.getData('UserList', toFind);
+        return dbUtils_1.dbUtils.getData('UserList', toFind);
     },
     getUserChats(chatId) {
         const toFind = { chatId };
-        return utils.getData('UserChats', toFind);
+        return dbUtils_1.dbUtils.getData('UserChats', toFind);
+    },
+    addRecipient(userName, { recipientUserName, chatId }) {
+        if (userName && recipientUserName && chatId) {
+            const recipientInfo = { userName: recipientUserName };
+            const toFind = { userName, 'chats.recipientUserName': { $nin: [recipientUserName] } };
+            const toUpdate = { $push: { 'chats': { recipientUserName, chatId } } };
+            return dbUtils_1.dbUtils.getCollection('UserList')
+                .then((collection) => {
+                return collection.find(recipientInfo).toArray()
+                    .then(data => {
+                    console.log('recipient');
+                    console.log(data);
+                    if (data && data.length > 0) {
+                        return collection.findOneAndUpdate(toFind, toUpdate)
+                            .then(data => {
+                            if (data && data.lastErrorObject && data.lastErrorObject.n > 0) {
+                                return data;
+                            }
+                            return 'The recipient is already added';
+                        })
+                            .catch(err => {
+                            console.log(err);
+                            return 'An error occured while fetching collection results';
+                        });
+                    }
+                    return 'Cannot find any record for the recipient user name provided';
+                })
+                    .catch(err => {
+                    console.log(err);
+                    return 'An error occured while fetching collection results';
+                });
+            })
+                .catch((err) => {
+                console.log(err);
+                return 'An error occured while fetching collection';
+            });
+        }
+        return 'userName & recipientUserName & chatId are mandatory';
     },
     addUserChat({ chatId, sender, message, date, time }) {
         const chatData = {
@@ -34,10 +72,10 @@ const chatModel = {
                     return 'An error occured while fetching collection results';
                 });
             };
-            return utils.connectDBCollection('UserChats', updateData);
+            return dbUtils_1.dbUtils.connectDBCollection('UserChats', updateData);
         }
         return Promise.resolve('Chat Id is mandatory');
     }
 };
-module.exports = chatModel;
+exports.chatModel = chatModel;
 //# sourceMappingURL=chat.js.map

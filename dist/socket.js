@@ -1,13 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const io = require("socket.io");
-//controller imports
+// controller imports
+// import { chatController } from './controllers/chat'
 const chatController = require('./controllers/chat');
+const redull = require('redull');
 // server instance is sent after starting the server
 module.exports = (server) => {
     const socketIO = io(server);
     socketIO.on('connection', socket => {
-        let userName = socket && socket.handshake && socket.handshake.query && socket.handshake.query.userName || 'Anonymous';
+        let userName = redull.getVal(socket, 'handshake.query.userName') || 'Anonymous';
+        // let userName = socket && socket.handshake && socket.handshake.query && socket.handshake.query.userName || 'Anonymous'
         console.log(`new user connected ${userName}`);
         // get all the chats of a particular user
         socket.on('get_chat_list', () => {
@@ -23,16 +26,26 @@ module.exports = (server) => {
             }
         });
         // when user adds a new chat
-        socket.on('add_chat', ({ chatId }) => {
+        socket.on('new_chat', ({ recipientUserName }) => {
+            // chat identifier genrated randomly
+            const identifier = Math.floor((Math.random() * 100000) + 1);
+            chatController.addRecipient(userName, { recipientUserName, chatId: identifier.toString() })
+                .then((result) => {
+                console.log(result);
+                socket.emit('new_chat', result);
+            })
+                .catch((err) => {
+                console.log(err);
+            });
         });
         // when user enters the chat with another user or in group 
         socket.on('enter_chat', ({ chatId }) => {
             socket.join(`${chatId}`);
         });
-        socket.on('change_username', (data) => {
-            console.log("change_username", data);
-            userName = data.userName;
-        });
+        // socket.on('change_username', (data) => {
+        //     console.log("change_username", data)
+        //     userName = data.userName;
+        // })
         socket.on('message', (data) => {
             console.log("message", data);
             const { chatId, message, userName } = data;

@@ -54,5 +54,5 @@ const dbUtils = {
         return this.connectDBCollection(collectionName, findData);
     }
 };
-module.exports = dbUtils;
+exports.dbUtils = dbUtils;
 //# sourceMappingURL=dbUtils.js.map

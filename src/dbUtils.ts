@@ -54,4 +54,6 @@ const dbUtils = {
     }
 }
 
-module.exports = dbUtils
+export {
+    dbUtils
+}
