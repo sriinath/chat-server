@@ -10,6 +10,19 @@ const socketChatEvents = (userData, socketIO, socket, userName) => {
     socket.on('enter_chat', ({ chatId }) => {
         socket.join(`${chatId}`);
     });
+    /* When user enters the group chat */
+    socket.on('username', () => {
+        console.log("Joined " + userName);
+        socketIO.emit('is_online', '<i>' + userName + ' join the chat..</i>');
+    });
+    socket.on('disconnect', () => {
+        console.log("Left chat " + userName);
+        socketIO.emit('is_online', '<i>' + userName + ' left the chat..</i>');
+    });
+    socket.on('chat_message', (message) => {
+        console.log(userName + " message sent " + message);
+        socketIO.emit('chat_message', '<strong>' + userName + '</strong>: ' + message);
+    });
 };
 // get current users chat list 
 const getChatList = (socketIO, socket, userName) => {
