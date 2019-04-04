@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const chat_1 = require("./chat");
+const uuidv1 = require('uuid/v1');
 class SocketController {
     constructor(socketIO, socket, userName) {
         this.userName = 'Anonymous';
@@ -9,6 +10,7 @@ class SocketController {
         };
         this.socketChatEvents = () => {
             // when user adds a new chat
+            console.log();
             this.socket.on('new_chat', ({ recipientUserName }) => this.newChat(recipientUserName));
             this.socket.on('message', (data) => this.newMessage(data));
             this.socket.on('addFavorites', (recipientUserName, isFavorites) => this.addUserAsFavorites(recipientUserName, isFavorites));
@@ -16,6 +18,18 @@ class SocketController {
             // when user enters the chat with another user or in group 
             this.socket.on('enter_chat', ({ chatId }) => {
                 this.socket.join(`${chatId}`);
+            });
+            this.socket.on('username', () => {
+                console.log("Joined " + this.userName);
+                SocketController.socketIO.emit('is_online', '<i>' + this.userName + ' join the chat..</i>');
+            });
+            this.socket.on('disconnect', () => {
+                console.log("Left chat " + this.userName);
+                SocketController.socketIO.emit('is_online', '<i>' + this.userName + ' left the chat..</i>');
+            });
+            this.socket.on('chat_message', (message) => {
+                console.log(this.userName + " message sent " + message);
+                SocketController.socketIO.emit('chat_message', '<strong>' + this.userName + '</strong>: ' + message);
             });
         };
         this.updateUserData = (data) => {
@@ -28,11 +42,13 @@ class SocketController {
         };
         // get current users chat list 
         this.getChatList = () => {
+            console.log(' in get chat list');
             if (this.userName) {
                 chat_1.ChatController.getUserChatList(this.userName)
                     .then((data) => {
                     if (data.length > 0) {
                         console.log('chat events are bound');
+                        this.userData = data[0];
                         this.socketChatEvents();
                         this.socket.join(this.userName);
                     }
@@ -68,11 +84,12 @@ class SocketController {
         // when a new message is received
         this.newMessage = (data) => {
             const { recipientUserName } = data;
-            if (recipientUserName == this.userName) {
-                this.socket.emit('new_chat', 'cannot send message to self at present');
-                console.log('cannot send message to self at present');
-                return;
-            }
+            // if(recipientUserName == this.userName) {
+            //     this.socket.emit('new_chat', 'cannot send message to self at present')
+            //     console.log('cannot send message to self at present')
+            //     return
+            // }
+            console.log(this.userData);
             const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : [];
             if (checkRecipient.length) {
                 const chatId = checkRecipient[0].chatId;
@@ -81,7 +98,8 @@ class SocketController {
             }
             else {
                 console.log('in new message acc creation');
-                const identifier = Math.floor((Math.random() * 100000) + 1);
+                // const identifier = Math.floor((Math.random() * 100000) + 1)
+                const identifier = uuidv1();
                 const chatId = identifier.toString();
                 chat_1.ChatController.addRecipient(this.userName, { recipientUserName, chatId })
                     .then((result) => {
@@ -110,7 +128,12 @@ class SocketController {
                     console.log('Database cannot be connected');
                 }
                 else {
-                    SocketController.socketIO.sockets.in(recipientUserName).emit('new_message', { message: message, username: this.userName });
+                    if (recipientUserName == this.userName) {
+                        this.socket.emit('new_message', { message: message, username: this.userName });
+                    }
+                    else {
+                        SocketController.socketIO.sockets.in(recipientUserName).emit('new_message', { message: message, username: this.userName });
+                    }
                 }
             })
                 .catch((err) => {

@@ -11,7 +11,7 @@ const defaultPath = "/src/";
 const socketInit = require('./socket')
 
 // router imports
-//const chatRouter = require('./routes/chat')
+const chatRouter = require('./routes/chat')
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -26,7 +26,7 @@ app.use(express.static(defaultPath));
 
 // call router for each specific router path
 
-// app.use('/chat/', chatRouter)
+app.use('/chat/', chatRouter)
 
 app.use("/", function(req, res) {
     // const path = req.originalUrl;

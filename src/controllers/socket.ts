@@ -6,7 +6,7 @@ import {
 import io = require('socket.io')
 
 import { ChatController } from './chat'
-
+const uuidv1 = require('uuid/v1')
 class SocketController {
     private static socketIO: io.Server
     private socket: io.Socket
@@ -21,7 +21,7 @@ class SocketController {
     }
     socketChatEvents = () => {
         // when user adds a new chat
-        
+        console.log()
         this.socket.on('new_chat', ({ recipientUserName }) => this.newChat(recipientUserName))
         this.socket.on('message', (data) => this.newMessage(data))
         this.socket.on('addFavorites', (recipientUserName, isFavorites) => this.addUserAsFavorites(recipientUserName, isFavorites))
@@ -55,11 +55,13 @@ class SocketController {
     }
     // get current users chat list 
     getChatList = () => {
+        console.log(' in get chat list')
         if(this.userName) {
             ChatController.getUserChatList(this.userName)
             .then((data: [UserList]) => {
                 if(data.length > 0) {
                     console.log('chat events are bound')
+                    this.userData = data[0]
                     this.socketChatEvents()
                     this.socket.join(this.userName)
                 }
@@ -97,11 +99,12 @@ class SocketController {
     // when a new message is received
     newMessage = (data: UserChatType) => {
         const { recipientUserName } = data
-        if(recipientUserName == this.userName) {
-            this.socket.emit('new_chat', 'cannot send message to self at present')
-            console.log('cannot send message to self at present')
-            return
-        }
+        // if(recipientUserName == this.userName) {
+        //     this.socket.emit('new_chat', 'cannot send message to self at present')
+        //     console.log('cannot send message to self at present')
+        //     return
+        // }
+        console.log(this.userData)
         const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : []
         if(checkRecipient.length) {
             const chatId = checkRecipient[0].chatId
@@ -110,7 +113,8 @@ class SocketController {
         }
         else {
             console.log('in new message acc creation')
-            const identifier = Math.floor((Math.random() * 100000) + 1)
+            // const identifier = Math.floor((Math.random() * 100000) + 1)
+            const identifier = uuidv1()
             const chatId = identifier.toString()
             ChatController.addRecipient(this.userName, { recipientUserName, chatId })
             .then((result: any) => {
@@ -140,7 +144,12 @@ class SocketController {
                 console.log('Database cannot be connected')
             }
             else {
-                SocketController.socketIO.sockets.in(recipientUserName).emit('new_message', {message: message, username: this.userName})
+                if(recipientUserName == this.userName) {
+                    this.socket.emit('new_message', { message: message, username: this.userName })
+                }
+                else {
+                    SocketController.socketIO.sockets.in(recipientUserName).emit('new_message', {message: message, username: this.userName})
+                }
             }
         })
         .catch((err: Error) => {
