@@ -5,7 +5,8 @@
         <script src="http://code.jquery.com/jquery-latest.min.js"></script>
         <script>
             $(function(){
-                const userName = 'srinath'
+                let params = (new URL(document.location)).searchParams;
+                const userName = params.get("userName")
                 var chatId = '93495'
                 var socket = io.connect('http://localhost:3000', {query : `userName=${userName}`})
                 socket.emit('get_chat_list')
@@ -16,14 +17,15 @@
                 var openForm = $('#openForm');
                 var createGroup_popup = $('#createGroup_popup');
                 var chatroom = $('#chatroom');
-                const recipientUserName = 'srinath'
+                const recipientUserName = params.get("recipientUserName")
                 // send_username.click(function() {
                 //     console.log(username.val());
                 //     socket.emit('change_username', {userName: username.val()})
                 // })
                 send_username.click(function() {
                     console.log(username.val());
-                    socket.emit('new_chat', {recipientUserName: username.val()})
+                    // socket.emit('new_chat', {recipientUserName: username.val()})
+                    socket.emit('addFavorites', username.val(), 'true')
                 })
                 send_message.click(function() {
                     console.log(username.val());
@@ -32,6 +34,10 @@
                 socket.on("new_message", (data) => {
                     console.log(data);
                     chatroom.append("<p id='message'>"+data.username + " : " + data.message + "</p>");
+                })
+                socket.on('userDataUpdate', (chatId) => {
+                    console.log('in user data update')
+                    socket.emit('userDataUpdate', { recipientUserName, chatId })
                 })
                 socket.on("new_chat", (data) => {
                     console.log(data);

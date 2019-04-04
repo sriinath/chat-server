@@ -13,7 +13,7 @@ interface ChatList {
 interface ChatType {
     chatId: string
     recipientUserName: string
-    starred?: boolean
+    starred?: 'true' | 'false'
 }
 interface UserChatType {
     chatId?: string

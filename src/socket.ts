@@ -1,6 +1,6 @@
 import { Server } from "http"
 import io = require('socket.io')
-import { getChatList } from './controllers/socket'
+import { SocketController } from './controllers/socket'
 
 const redull = require('redull')
 
@@ -10,6 +10,6 @@ module.exports = (server: Server) => {
     socketIO.on('connection', async socket => {
         let userName = redull.getVal(socket, 'handshake.query.userName') || 'Anonymous'
         console.log(`new user connected ${userName}`)
-        socket.on('get_chat_list', () => getChatList(socketIO, socket, userName))
+        socket.on('get_chat_list', () => new SocketController(socketIO, socket, userName).getChatList())
     })
 }

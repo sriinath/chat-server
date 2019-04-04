@@ -17,7 +17,7 @@ module.exports = (server) => {
     socketIO.on('connection', (socket) => __awaiter(this, void 0, void 0, function* () {
         let userName = redull.getVal(socket, 'handshake.query.userName') || 'Anonymous';
         console.log(`new user connected ${userName}`);
-        socket.on('get_chat_list', () => socket_1.getChatList(socketIO, socket, userName));
+        socket.on('get_chat_list', () => new socket_1.SocketController(socketIO, socket, userName).getChatList());
     }));
 };
 //# sourceMappingURL=socket.js.map

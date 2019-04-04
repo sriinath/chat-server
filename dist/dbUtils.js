@@ -11,29 +11,36 @@ const dbUtils = {
         });
     },
     getCollection(collectionName) {
-        return dbUtils.dbConnect()
-            .then((db) => {
-            return db.db(dbName).collection(collectionName);
-        })
-            .catch((err) => {
-            return err;
-        });
+        if (collectionName) {
+            return dbUtils.dbConnect()
+                .then((db) => {
+                return db.db(dbName).collection(collectionName);
+            })
+                .catch((err) => {
+                return err;
+            });
+        }
     },
     connectDBCollection(collectionName, callback) {
-        return dbUtils.getCollection(collectionName)
-            .then((collection) => {
-            if (collection && collection.code && collection.code == 'ECONNREFUSED') {
-                return 'Database cannot be connected';
-            }
-            else {
-                return callback(collection);
-            }
-        })
-            .catch((err) => {
-            console.log('An error occured while connecting to database');
-            console.log(err);
-            return err;
-        });
+        if (collectionName) {
+            return dbUtils.getCollection(collectionName)
+                .then((collection) => {
+                if (collection && collection.code && collection.code == 'ECONNREFUSED') {
+                    return 'Database cannot be connected';
+                }
+                else {
+                    return callback(collection);
+                }
+            })
+                .catch((err) => {
+                console.log('An error occured while connecting to database');
+                console.log(err);
+                return err;
+            });
+        }
+        else {
+            return Promise.resolve('Colllection name is not valid string');
+        }
     },
     findData(collection, query) {
         return collection.find(query, { fields: { _id: 0 } }).toArray()
