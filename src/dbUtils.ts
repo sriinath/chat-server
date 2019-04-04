@@ -10,29 +10,36 @@ const dbUtils = {
         })
     },
     getCollection(collectionName: string) {
-        return dbUtils.dbConnect()
-        .then((db: mongoDB.MongoClient) => {
-            return db.db(dbName).collection(collectionName)
-        })
-        .catch((err: mongoDB.MongoError) => {
-            return err
-        })
+        if(collectionName) {
+            return dbUtils.dbConnect()
+            .then((db: mongoDB.MongoClient) => {
+                return db.db(dbName).collection(collectionName)
+            })
+            .catch((err: mongoDB.MongoError) => {
+                return err
+            })    
+        }
     },
     connectDBCollection(collectionName: string, callback: Function) {
-        return dbUtils.getCollection(collectionName)
-        .then((collection: any) => {
-            if(collection && collection.code && collection.code == 'ECONNREFUSED') {
-                return 'Database cannot be connected'
-            }
-            else {
-                return callback(collection)
-            }
-        })
-        .catch((err: mongoDB.MongoError) => {
-            console.log('An error occured while connecting to database')
-            console.log(err)
-            return err
-        })
+        if(collectionName) {
+            return dbUtils.getCollection(collectionName)
+            .then((collection: any) => {
+                if(collection && collection.code && collection.code == 'ECONNREFUSED') {
+                    return 'Database cannot be connected'
+                }
+                else {
+                    return callback(collection)
+                }
+            })
+            .catch((err: mongoDB.MongoError) => {
+                console.log('An error occured while connecting to database')
+                console.log(err)
+                return err
+            })    
+        }
+        else {
+            return Promise.resolve('Colllection name is not valid string')
+        }
     },
     findData(collection: mongoDB.Collection, query: Object) {
         return collection.find(query, { fields: {_id: 0} } ).toArray()

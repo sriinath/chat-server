@@ -1,127 +1,166 @@
 import {
     UserList,
-    UserChatType
+    UserChatType,
+    ChatType
 } from "../typings";
 import io = require('socket.io')
 
-const chatController = require('./chat')
+import { ChatController } from './chat'
 
-// sigle handler for bindng all the events
-const socketChatEvents = (userData: UserList, socketIO: io.Server, socket: io.Socket, userName: string) => {
-    // when user adds a new chat
-    socket.on('new_chat', ({ recipientUserName }) => newChat(socket, userData, recipientUserName))
-    socket.on('message', (data) => newMessage(socketIO, socket, userData, data, userName))
-    // when user enters the chat with another user or in group 
-    socket.on('enter_chat', ({ chatId }) => {
-        socket.join(`${chatId}`)
-    })
-    /* When user enters the group chat */
-    socket.on('username', () => {
-        console.log("Joined " +  userName);
-        socketIO.emit('is_online', '<i>' +  userName + ' join the chat..</i>');
-    });
-
-    socket.on('disconnect', () => {
-        console.log("Left chat " + userName);
-        socketIO.emit('is_online', '<i>' + userName + ' left the chat..</i>');
-    })
-
-    socket.on('chat_message', (message) =>{
-        console.log(userName + " message sent " + message );
-        socketIO.emit('chat_message', '<strong>' + userName + '</strong>: ' + message);
-    });
-}
-
-// get current users chat list 
-const getChatList = (socketIO:io.Server, socket: io.Socket, userName: string) => {
-    if(userName) {
-        chatController.getUserChatList(userName)
-        .then((data: [UserList]) => {
-            if(data.length > 0) {
-                console.log('chat events are bound')
-                socketChatEvents(data[0], socketIO, socket, userName)
-                socket.join(userName)
-            }
-            else {
-                console.log('chat events are skipped')
-            }
-        })
-        .catch((err: Error) => {
-            console.log('error logged')
-            console.log(err)
-        })
+class SocketController {
+    private static socketIO: io.Server
+    private socket: io.Socket
+    private userName: string = 'Anonymous'
+    private userData: UserList = {
+        userName: this.userName
     }
-}
-
-// when user opens a chat of a particular user
-const newChat = (socket: io.Socket, userData: UserList, recipientUserName: string) => {
-    const checkRecipient = userData && userData.chats && userData.chats.length > 0 ? userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : []
-    if(checkRecipient.length) {
-        // socket.join(recipientUserName)
-        const chatId = checkRecipient[0].chatId
-        chatController.getUserChats(chatId)
-        .then((data: any) => {
-            socket.emit('new_chat', data)
+    constructor(socketIO:io.Server, socket: io.Socket, userName: string) {
+        SocketController.socketIO = socketIO
+        this.socket = socket
+        this.userName = userName
+    }
+    socketChatEvents = () => {
+        // when user adds a new chat
+        
+        this.socket.on('new_chat', ({ recipientUserName }) => this.newChat(recipientUserName))
+        this.socket.on('message', (data) => this.newMessage(data))
+        this.socket.on('addFavorites', (recipientUserName, isFavorites) => this.addUserAsFavorites(recipientUserName, isFavorites))
+        this.socket.on('userDataUpdate', (data) => this.updateUserData(data))
+        // when user enters the chat with another user or in group 
+        this.socket.on('enter_chat', ({ chatId }) => {
+            this.socket.join(`${chatId}`)
         })
-        .catch((err: Error) => {
-            console.log('error logged')
-            console.log(err)
+        this.socket.on('username', () => {
+            console.log("Joined " +  this.userName);
+            SocketController.socketIO.emit('is_online', '<i>' +  this.userName + ' join the chat..</i>');
+        });
+    
+        this.socket.on('disconnect', () => {
+            console.log("Left chat " + this.userName);
+            SocketController.socketIO.emit('is_online', '<i>' + this.userName + ' left the chat..</i>');
         })
+    
+        this.socket.on('chat_message', (message) =>{
+            console.log(this.userName + " message sent " + message );
+            SocketController.socketIO.emit('chat_message', '<strong>' + this.userName + '</strong>: ' + message);
+        });
     }
-    else {
-        socket.emit('new_chat', 'No previous record of chat')
-    }
-}
-
-// when a new message is received
-const newMessage = (SocketIO: io.Server, socket: io.Socket, userData: UserList, data: UserChatType, userName: string) => {
-    const { recipientUserName } = data
-    if(recipientUserName == userName) {
-        socket.emit('new_chat', 'cannot send message to self at present')
-        console.log('cannot send message to self at present')
-        return
-    }
-    const checkRecipient = userData && userData.chats && userData.chats.length > 0 ? userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : []
-    if(checkRecipient.length) {
-        const chatId = checkRecipient[0].chatId
-        data.chatId = chatId
-        addUserMessage(SocketIO, data, userName)
-    }
-    else {
-        const identifier = Math.floor((Math.random() * 100000) + 1)
-        const chatId = identifier.toString()
-        chatController.addRecipient(userName, { recipientUserName, chatId })
-        .then((result: any) => {
-            if(result === 'true') {
-                // socket.join(recipientUserName)
-                data.chatId = chatId
-                addUserMessage(SocketIO, data, userName)
-            }
-            socket.emit('new_chat', result)
-        })
-        .catch((err: Error) => {
-            console.log(err)
-        })
-    }
-}
-
-// this will be called from new message method
-// add a users messsage to the db
-const addUserMessage = (socketIO: io.Server, data: UserChatType, userName: string) => {
-    const { message, recipientUserName } = data
-    chatController.addUserChat(data)
-    .then((data: any) => {
-        if(data && data.code && data.code == 'ECONNREFUSED') {
-            console.log('Database cannot be connected')
+    updateUserData = (data: ChatType) => {
+        if(!this.userData.chats) {
+            this.userData.chats = [data]
         }
         else {
-            socketIO.sockets.in(recipientUserName).emit('new_message', {message: message, username: userName})
+            this.userData.chats.push(data)
         }
-    })
-    .catch((err: Error) => {
-        console.log('error logged')
-        console.log(err)
-    })
+    }
+    // get current users chat list 
+    getChatList = () => {
+        if(this.userName) {
+            ChatController.getUserChatList(this.userName)
+            .then((data: [UserList]) => {
+                if(data.length > 0) {
+                    console.log('chat events are bound')
+                    this.socketChatEvents()
+                    this.socket.join(this.userName)
+                }
+                else {
+                    console.log('chat events are skipped')
+                }
+            })
+            .catch((err: Error) => {
+                console.log('error logged')
+                console.log(err)
+            })
+        }
+    }
+    
+    // when user opens a chat of a particular user
+    newChat = (recipientUserName: string) => {
+        const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : []
+        if(checkRecipient.length) {
+            // socket.join(recipientUserName)
+            const chatId = checkRecipient[0].chatId
+            ChatController.getUserChats(chatId)
+            .then((data: any) => {
+                this.socket.emit('new_chat', data)
+            })
+            .catch((err: Error) => {
+                console.log('error logged')
+                console.log(err)
+            })
+        }
+        else {
+            this.socket.emit('new_chat', 'No previous record of chat')
+        }
+    }
+    
+    // when a new message is received
+    newMessage = (data: UserChatType) => {
+        const { recipientUserName } = data
+        if(recipientUserName == this.userName) {
+            this.socket.emit('new_chat', 'cannot send message to self at present')
+            console.log('cannot send message to self at present')
+            return
+        }
+        const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : []
+        if(checkRecipient.length) {
+            const chatId = checkRecipient[0].chatId
+            data.chatId = chatId
+            this.addUserMessage(data)
+        }
+        else {
+            console.log('in new message acc creation')
+            const identifier = Math.floor((Math.random() * 100000) + 1)
+            const chatId = identifier.toString()
+            ChatController.addRecipient(this.userName, { recipientUserName, chatId })
+            .then((result: any) => {
+                if(result === 'true') {
+                    // socket.join(recipientUserName)
+                    data.chatId = chatId
+                    this.updateUserData({ recipientUserName, chatId })
+                    SocketController.socketIO.sockets.in(recipientUserName).emit('userDataUpdate', chatId)
+                    console.log('user data updated')
+                    this.addUserMessage(data)
+                }
+                this.socket.emit('new_chat', result)
+            })
+            .catch((err: Error) => {
+                console.log(err)
+            })
+        }
+    }
+    
+    // this will be called from new message method
+    // add a users messsage to the db
+    addUserMessage = (data: UserChatType) => {
+        const { message, recipientUserName } = data
+        ChatController.addUserChat(data)
+        .then((data: any) => {
+            if(data && data.code && data.code == 'ECONNREFUSED') {
+                console.log('Database cannot be connected')
+            }
+            else {
+                SocketController.socketIO.sockets.in(recipientUserName).emit('new_message', {message: message, username: this.userName})
+            }
+        })
+        .catch((err: Error) => {
+            console.log('error logged')
+            console.log(err)
+        })
+    }
+    
+    addUserAsFavorites = (recipientUserName: string, isFavorites: string) => {
+        if(this.userName && recipientUserName && isFavorites) {
+            ChatController.addFavouritesChat({ userName: this.userName, recipientUserName, isFavorites })
+            .then((data: any) => {
+                console.log(data)
+            })
+            .catch((err: Error) => {
+                console.log('error logged')
+                console.log(err)
+            })    
+        }
+    }
 }
 
-export { getChatList }
+export { SocketController }
