@@ -30,6 +30,20 @@ class SocketController {
         this.socket.on('enter_chat', ({ chatId }) => {
             this.socket.join(`${chatId}`)
         })
+        this.socket.on('username', () => {
+            console.log("Joined " +  this.userName);
+            SocketController.socketIO.emit('is_online', '<i>' +  this.userName + ' join the chat..</i>');
+        });
+    
+        this.socket.on('disconnect', () => {
+            console.log("Left chat " + this.userName);
+            SocketController.socketIO.emit('is_online', '<i>' + this.userName + ' left the chat..</i>');
+        })
+    
+        this.socket.on('chat_message', (message) =>{
+            console.log(this.userName + " message sent " + message );
+            SocketController.socketIO.emit('chat_message', '<strong>' + this.userName + '</strong>: ' + message);
+        });
     }
     updateUserData = (data: ChatType) => {
         if(!this.userData.chats) {
