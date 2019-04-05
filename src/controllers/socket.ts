@@ -104,7 +104,6 @@ class SocketController {
         //     console.log('cannot send message to self at present')
         //     return
         // }
-        console.log(this.userData)
         const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : []
         if(checkRecipient.length) {
             const chatId = checkRecipient[0].chatId

@@ -65,13 +65,17 @@ class ChatModelEvents {
                 return this.checkUserAvailability(userListCollection, recipientUserName)
                     .then((data) => {
                     if (data === 'true') {
+                        const bulkOp = userListCollection.initializeUnorderedBulkOp();
+                        bulkOp.find(toFindSender).update(toUpdateSender);
+                        bulkOp.find(toFindRecipient).update(toUpdateRecipient);
                         return Promise.all([
-                            userListCollection.findOneAndUpdate(toFindSender, toUpdateSender),
-                            userListCollection.findOneAndUpdate(toFindRecipient, toUpdateRecipient),
+                            // userListCollection.findOneAndUpdate(toFindSender, toUpdateSender),
+                            // userListCollection.findOneAndUpdate(toFindRecipient, toUpdateRecipient),
+                            bulkOp.execute(),
                             userChatCollection.insertOne(chatInsert)
                         ])
                             .then(data => {
-                            if (data && data[0] && data[1] && data[0].lastErrorObject && data[0].lastErrorObject.n > 0 && data[1].lastErrorObject && data[1].lastErrorObject.n > 0) {
+                            if (data && data[0] && data[0].nModified && data[0].nModified == 2) {
                                 return 'true';
                             }
                             return 'The recipient is already added';
