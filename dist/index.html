@@ -17,6 +17,9 @@
                 var openForm = $('#openForm');
                 var createGroup_popup = $('#createGroup_popup');
                 var chatroom = $('#chatroom');
+                var btn_ChannelCreate = $('#btn_ChannelCreate');
+                var addMembers= $('#addMembers');
+                var joinUser = $('#usersList a');
                 const recipientUserName = params.get("recipientUserName")
                 // send_username.click(function() {
                 //     console.log(username.val());
@@ -42,6 +45,9 @@
                 socket.on("new_chat", (data) => {
                     console.log(data);
                 })
+                socket.on('add_ExistingGroup', (room) => {
+                    $('#group_names').append($('<li>').html(room));
+                });
                 // socket.emit('new_chat', { recipientUserName: 'karthikeyan' })
                 
                 // socket.emit('add_chat', {chatId: 'hello'})
@@ -79,12 +85,54 @@
                     $('.close').click(function() {
                         $('#grp_modal').css("display", 'none');
                     })
+                    $('.btnCancel').click(function() {
+                        $('#grp_modal').css("display", 'none');
+                    })
                     $(window).click(function(event) {
                         if (event.target == grpModal) {
                             $('#grp_modal').css('display', 'none');
                         }
                     })
                 })
+                btn_ChannelCreate.click(function() {
+                    var isChannelName = $('#nameOfGrp').val()
+                    if(isChannelName != ""){
+                        socket.emit('create', $('#nameOfGrp').val());
+                    }
+                    
+                    socket.on('add_grp', (room) => {
+                        $('#group_names').append($('<li>').html(room));
+                        localStorage.setItem('Group_Name', room);
+                        $('.grp_items').css("display", 'block');
+                    });
+                })
+                addMembers.click(function(){
+                    const chatUsers = [{"id":"99990","name":"virat"}, {"id":"94252","name":"naveena"},{"id":"95426","name":"srinath"}];
+                    document.getElementById("myDropdown").classList.toggle("show");
+                    $('#myDropdown').css('display',"block");
+                    chatUsers.map((item,index) => {
+                        console.log(item.name);
+                        return(
+                            $('#usersList').append($('<a>').html(item.name)) //chat members to be shown
+                        );
+                    })
+                    $('#usersList a').click(function(event){
+                        socket.emit('send_invite', event.target.innerHTML); // Invite to join
+                    })
+                })
+                socket.on('got_invite', (addGrpMember, grpName) => {
+                    console.log('join room');
+                    $('#joinChannel').css('display','block');
+                    $('#joinChannel p').html('Join the Room:: '+ '<b>'+ grpName + '</b>');
+                    $('#joinChannel .joinRoom').html('Join Room');
+                    $('#joinChannel .cancelRoom').html('Cancel');
+                    $('.joinRoom').click(function(){
+                        socket.emit('add_user_to_grp', recipientUserName, addGrpMember, grpName);  //If yes, add the member in grp
+                    })
+                    $('.cancelRoom').click(function(){
+                        alert('Not joined the group chat');
+                    })
+                });
             })
         </script>
         <style>
@@ -145,16 +193,16 @@
                 overflow-y: scroll;
                 list-style-type: none; 
                 margin: 0; 
-                padding: 0; 
+                padding: 5px; 
             }
             #messages li { 
                 padding: 5px 20px;
             }
-            #messages li:nth-child(odd) { 
+           /* #messages li:nth-child(odd) { 
                 background: #eee; 
                 width: 60%; 
                 margin-top: 5px;
-            }
+            }*/
             /* The popup chat - hidden by default */
             .group_chat_popup {
                 display: none;
@@ -189,7 +237,8 @@
             }
             .create_group {
                 color: dimgrey;
-                padding: 5px;
+                padding: 0px;
+                margin: 0px;
             }
             .create_group:hover{
                 color:dodgerblue;
@@ -228,6 +277,41 @@
             .grp_modal-content div{
                 width: 85%;
             }
+            #group_names{
+                margin: 0;
+                padding: 10px;
+            }
+            #group_names li{
+                background: #eee;
+            }
+            .addMembers{
+                display: inline-block;
+                padding: 10px;
+                position: fixed;
+                bottom: 300px;
+                right: 0px;
+            }
+            #myDropdown{
+                display: none;
+                bottom: 180px;
+                right: -13px;
+                position: absolute;
+                margin: 12px;
+                border: 1px solid #ddd;
+                z-index: 1;
+            }
+            #usersList a{
+                color: black;
+                padding: 5px;
+                text-decoration: none;
+                display: block;
+            }
+            #usersList a:hover {background-color: grey;}
+            #joinChannel{
+                display: none;
+                border: 1px solid grey;
+                padding: 10px;
+            }
         </style>
     </head>
     <body>
@@ -252,24 +336,38 @@
                     <ul id="search_user">New Chat</ul>
                     <ul id="chat_userName"></ul>
                     <ul class="create_group" id="createGroup_popup"> + Create a group</ul>
+                    <ul id="group_names"></ul>
                     <div id="grp_modal" class="grp_modal">
                         <div class="grp_modal-content" id="grp_modal-content">
                             <span class="close">&times;</span>
                             <div class="popup_HeadName">Create a channel</div>
                             <div class="popupName">
                                 Name
-                                <input type="text" class="nameOfGrp" placeholder="# eg. MinonGang">
+                                <input type="text" class="nameOfGrp" id="nameOfGrp" placeholder="# eg. MinonGang" required>
                             </div>
-                            <div class="sendInvitation">
+                            <!--<div class="sendInvitation">
                                 Send invites to:
-                                <input type="text" class="addParticipants" placeholder="# eg. Search by name">
-                            </div>
-                            <button type="button" class="btnCancel">Cancel</button>
-                            <button type="button" class="btn_ChannelCreate">Create Channel</button>
+                                <input type="text" class="addParticipants" id="addParticipants" placeholder="# eg. Search by name" required> 
+                            </div>-->
+                            <button type="button" class="btnCancel" id="btnCancel">Cancel</button>
+                            <button type="button" class="btn_ChannelCreate" id="btn_ChannelCreate">Create Channel</button>
                         </div>
                     </div>
                 </div>
-                <ul id="messages"></ul>
+                <ul id="messages">
+                    <div id="joinChannel">
+                        <p class="roomName"></p>
+                        <button class="joinRoom">Join Room</button>
+                        <button class="cancelRoom">Cancel</button>
+                    </div>
+                </ul>
+                <div class="grp_items" style="display: none">
+                    <button type="button" class="addMembers" id="addMembers">Add Members</button>
+                    <div id="myDropdown" class="dropdown-content">
+                        <input type="text" placeholder="Search.." id="myInput">
+                        <div id="usersList"></div>
+                    </div>
+                </div>
             </div>
             <form action="/" method="POST" id="chatForm">
                 <input id="txt" autocomplete="off" autofocus="on" placeholder="type your message here..." /><button>Send</button>

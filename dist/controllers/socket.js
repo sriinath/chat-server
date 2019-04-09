@@ -5,12 +5,12 @@ const uuidv1 = require('uuid/v1');
 class SocketController {
     constructor(socketIO, socket, userName) {
         this.userName = 'Anonymous';
+        this.groupName = [];
         this.userData = {
             userName: this.userName
         };
         this.socketChatEvents = () => {
             // when user adds a new chat
-            console.log();
             this.socket.on('new_chat', ({ recipientUserName }) => this.newChat(recipientUserName));
             this.socket.on('message', (data) => this.newMessage(data));
             this.socket.on('addFavorites', (recipientUserName, isFavorites) => this.addUserAsFavorites(recipientUserName, isFavorites));
@@ -31,6 +31,20 @@ class SocketController {
                 console.log(this.userName + " message sent " + message);
                 SocketController.socketIO.emit('chat_message', '<strong>' + this.userName + '</strong>: ' + message);
             });
+            this.socket.on('create', (room) => {
+                if (this.groupName.indexOf(room) > -1) {
+                    console.log('GroupExists!!!', room + ' Group is taken! Try some other Group name.');
+                }
+                else {
+                    this.groupName.push(room);
+                    console.log(this.userName + " Created Group " + this.groupName); //groupname, groupOwner - who created group? - db store
+                    SocketController.socketIO.emit('add_grp', room);
+                }
+            });
+            this.socket.on('send_invite', (addGrpMember) => {
+                SocketController.socketIO.sockets.in(addGrpMember).emit('got_invite', addGrpMember, this.groupName);
+            });
+            this.socket.on('add_user_to_grp', (recipientUserName, addGrpMember, groupName) => this.addUserToGrp(recipientUserName, addGrpMember, groupName));
         };
         this.updateUserData = (data) => {
             if (!this.userData.chats) {
@@ -144,6 +158,18 @@ class SocketController {
         this.addUserAsFavorites = (recipientUserName, isFavorites) => {
             if (this.userName && recipientUserName && isFavorites) {
                 chat_1.ChatController.addFavouritesChat({ userName: this.userName, recipientUserName, isFavorites })
+                    .then((data) => {
+                    console.log(data);
+                })
+                    .catch((err) => {
+                    console.log('error logged');
+                    console.log(err);
+                });
+            }
+        };
+        this.addUserToGrp = (recipientUserName, addGrpMember, groupName) => {
+            if (addGrpMember && groupName) {
+                chat_1.ChatController.addGrpMemberChats({ recipientUserName, addGrpMember, groupName })
                     .then((data) => {
                     console.log(data);
                 })
