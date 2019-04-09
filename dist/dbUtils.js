@@ -11,34 +11,40 @@ const dbUtils = {
         });
     },
     getCollection(collectionName) {
-        return this.dbConnect(dbURL)
-            .then((db) => {
-            return db.db(dbName).collection(collectionName);
-        })
-            .catch((err) => {
-            return err;
-        });
+        if (collectionName) {
+            return dbUtils.dbConnect()
+                .then((db) => {
+                return db.db(dbName).collection(collectionName);
+            })
+                .catch((err) => {
+                return err;
+            });
+        }
     },
     connectDBCollection(collectionName, callback) {
-        return this.getCollection(collectionName)
-            .then((collection) => {
-            if (collection && collection.code && collection.code == 'ECONNREFUSED') {
-                return 'Database cannot be connected';
-            }
-            else {
-                return callback(collection);
-            }
-        })
-            .catch((err) => {
-            console.log('An error occured while connecting to database');
-            console.log(err);
-            return err;
-        });
+        if (collectionName) {
+            return dbUtils.getCollection(collectionName)
+                .then((collection) => {
+                if (collection && collection.code && collection.code == 'ECONNREFUSED') {
+                    return 'Database cannot be connected';
+                }
+                else {
+                    return callback(collection);
+                }
+            })
+                .catch((err) => {
+                console.log('An error occured while connecting to database');
+                console.log(err);
+                return err;
+            });
+        }
+        else {
+            return Promise.resolve('Colllection name is not valid string');
+        }
     },
     findData(collection, query) {
-        return collection.find(query).toArray()
+        return collection.find(query, { fields: { _id: 0 } }).toArray()
             .then(data => {
-            console.log(data);
             return data;
         })
             .catch(err => {
@@ -49,10 +55,10 @@ const dbUtils = {
     getData(collectionName, toFind) {
         // find data is a callback method
         const findData = (collection) => {
-            return this.findData(collection, toFind);
+            return dbUtils.findData(collection, toFind);
         };
-        return this.connectDBCollection(collectionName, findData);
+        return dbUtils.connectDBCollection(collectionName, findData);
     }
 };
-module.exports = dbUtils;
+exports.dbUtils = dbUtils;
 //# sourceMappingURL=dbUtils.js.map

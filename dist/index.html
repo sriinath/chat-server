@@ -5,28 +5,86 @@
         <script src="http://code.jquery.com/jquery-latest.min.js"></script>
         <script>
             $(function(){
-                const chatId = '123'
-                var socket = io.connect('http://localhost:3000', {query : 'userName=srinath'})
-                socket.emit('enter_chat', { chatId })
+                let params = (new URL(document.location)).searchParams;
+                const userName = params.get("userName")
+                var chatId = '93495'
+                var socket = io.connect('http://localhost:3000', {query : `userName=${userName}`})
                 socket.emit('get_chat_list')
                 var message = $('#message');
                 var username = $('#username');
                 var send_message = $('#send_message');
                 var send_username = $('#send_username');
+                var openForm = $('#openForm');
+                var createGroup_popup = $('#createGroup_popup');
                 var chatroom = $('#chatroom');
-                send_username.click(function(){
+                const recipientUserName = params.get("recipientUserName")
+                // send_username.click(function() {
+                //     console.log(username.val());
+                //     socket.emit('change_username', {userName: username.val()})
+                // })
+                send_username.click(function() {
                     console.log(username.val());
-                    socket.emit('change_username', {userName: username.val()})
+                    // socket.emit('new_chat', {recipientUserName: username.val()})
+                    socket.emit('addFavorites', username.val(), 'true')
                 })
-                send_message.click(function(){
+                send_message.click(function() {
                     console.log(username.val());
-                    socket.emit('message', {chatId, message: message.val(), userName: 'john'})
+                    socket.emit('message', {message: message.val(), recipientUserName })
                 })
                 socket.on("new_message", (data) => {
                     console.log(data);
                     chatroom.append("<p id='message'>"+data.username + " : " + data.message + "</p>");
                 })
+                socket.on('userDataUpdate', (chatId) => {
+                    console.log('in user data update')
+                    socket.emit('userDataUpdate', { recipientUserName, chatId })
+                })
+                socket.on("new_chat", (data) => {
+                    console.log(data);
+                })
+                // socket.emit('new_chat', { recipientUserName: 'karthikeyan' })
+                
                 // socket.emit('add_chat', {chatId: 'hello'})
+                openForm.click(function() {
+                    //var socket = io.connect('http://localhost:3000');
+                    $('form').submit(function(e){
+                        e.preventDefault(); // prevents page reloading
+                        socket.emit('chat_message', $('#txt').val());
+                        $('#txt').val('');
+                        return false;
+                    });
+
+                    // append the chat text message
+                    socket.on('chat_message', (msg) => {
+                        $('#messages').append($('<li>').html(msg));
+                    });
+
+                    // append text if someone is online
+                    socket.on('is_online', (userName) => {
+                        $('#messages').append($('<li>').html(userName));
+                    });
+
+                    // ask username
+                    //var username = prompt('Please tell me your name');
+                    socket.emit('username', userName);
+                    if(userName){
+                        document.getElementById("group_chat_popup").style.display = "block";
+                    }
+                })
+                createGroup_popup.click(function() {
+                    var grpModal = $('#grp_modal');
+                    $('#createGroup_popup').click(function() {
+                        $('#grp_modal').css("display", 'block');
+                    })
+                    $('.close').click(function() {
+                        $('#grp_modal').css("display", 'none');
+                    })
+                    $(window).click(function(event) {
+                        if (event.target == grpModal) {
+                            $('#grp_modal').css('display', 'none');
+                        }
+                    })
+                })
             })
         </script>
         <style>
@@ -56,6 +114,120 @@
             .inputEle input{
                 width: 300px;
             }
+            form {     
+                background: #fff;
+                padding: 3px;
+                position: fixed;
+                bottom: 70px;
+                right: 32px;
+                width: 370px;
+                display: flex;
+                margin-bottom: 20px;
+                border: 1px solid black;
+            }
+            form input { 
+                border-style: solid; 
+                border-width: 1px; 
+                padding: 10px; 
+                width: 85%; 
+                margin-right: .5%; 
+            }
+            form button { 
+                width: 15%;
+                background: #69bbd6;
+                border: none;
+                padding: 10px;
+                margin-left: 2%;
+            }
+            #messages { 
+                display: block;
+                height: 300px;
+                overflow-y: scroll;
+                list-style-type: none; 
+                margin: 0; 
+                padding: 0; 
+            }
+            #messages li { 
+                padding: 5px 20px;
+            }
+            #messages li:nth-child(odd) { 
+                background: #eee; 
+                width: 60%; 
+                margin-top: 5px;
+            }
+            /* The popup chat - hidden by default */
+            .group_chat_popup {
+                display: none;
+                float: right;
+                width: 400px;
+                }
+            .open-button {
+                background-color: #555;
+                color: white;
+                padding: 16px 20px;
+                border: none;
+                cursor: pointer;
+                opacity: 0.8;
+                position: fixed;
+                bottom: 23px;
+                right: 28px;
+                width: 380px;
+            }
+            .users_chatMsg {
+                width: 100%;
+            }
+            .chat_users{
+                float: left;
+                width: 22%;
+                height: 280px;
+                border-right: 1px solid black;
+                padding-right: 5px;
+            }
+            #search_user {
+                background: grey;
+                padding: 10px;
+            }
+            .create_group {
+                color: dimgrey;
+                padding: 5px;
+            }
+            .create_group:hover{
+                color:dodgerblue;
+            }
+            #grp_modal {
+                display: none; 
+                position: relative;
+                width: 350px; 
+                z-index: 1; 
+                padding: 5px; 
+                overflow: auto; 
+                background-color: rgb(0,0,0);
+                background-color: rgba(0,0,0,0.4); 
+            }
+            .grp_modal-content {
+                background-color: #fefefe;
+                margin: auto;
+                padding: 20px;
+                border: 1px solid #888;
+                width: 80%;
+            }
+            .close {
+                position: relative;
+                top: -8px;
+                color: #aaaaaa;
+                float: right;
+                font-size: 28px;
+                font-weight: bold;
+            }
+            .close:hover,
+            .close:focus {
+                color: #000;
+                text-decoration: none;
+                cursor: pointer;
+            }
+            .grp_modal-content div{
+                width: 85%;
+            }
         </style>
     </head>
     <body>
@@ -72,6 +244,36 @@
         <div id="send_username">send_username</div>
         <div id="chatroom">
             <h1>Chat Room</h1>
+        </div>
+        <button class="open-button" id="openForm">Chat</button>
+        <div class="group_chat_popup" id="group_chat_popup"> 
+            <div class="users_chatMsg"> 
+                <div class="chat_users">
+                    <ul id="search_user">New Chat</ul>
+                    <ul id="chat_userName"></ul>
+                    <ul class="create_group" id="createGroup_popup"> + Create a group</ul>
+                    <div id="grp_modal" class="grp_modal">
+                        <div class="grp_modal-content" id="grp_modal-content">
+                            <span class="close">&times;</span>
+                            <div class="popup_HeadName">Create a channel</div>
+                            <div class="popupName">
+                                Name
+                                <input type="text" class="nameOfGrp" placeholder="# eg. MinonGang">
+                            </div>
+                            <div class="sendInvitation">
+                                Send invites to:
+                                <input type="text" class="addParticipants" placeholder="# eg. Search by name">
+                            </div>
+                            <button type="button" class="btnCancel">Cancel</button>
+                            <button type="button" class="btn_ChannelCreate">Create Channel</button>
+                        </div>
+                    </div>
+                </div>
+                <ul id="messages"></ul>
+            </div>
+            <form action="/" method="POST" id="chatForm">
+                <input id="txt" autocomplete="off" autofocus="on" placeholder="type your message here..." /><button>Send</button>
+            </form>
         </div>
     </body>
 </html>
