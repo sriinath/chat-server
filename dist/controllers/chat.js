@@ -46,6 +46,14 @@ class ChatControllerObject {
             return Promise.resolve('username, recipient username and isfavorites is mandatory');
         }
     }
+    addGrpMemberChats({ recipientUserName, addGrpMember, groupName }) {
+        if (recipientUserName && addGrpMember && groupName) {
+            return chat_1.ChatModel.addGrpMemberChats(recipientUserName, addGrpMember, groupName);
+        }
+        else {
+            return Promise.resolve('username, groupName and groupMember is mandatory');
+        }
+    }
 }
 const ChatController = new ChatControllerObject();
 exports.ChatController = ChatController;

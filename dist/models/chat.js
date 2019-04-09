@@ -152,6 +152,51 @@ class ChatModelEvents {
         }
         return Promise.resolve('User Name and Recipient User Name are mandatory');
     }
+    addGrpMemberChats(recipientUserName, userName, groupName) {
+        console.log('recipientUserName ' + recipientUserName + ' addGrpMember ' + userName + 'groupName ' + groupName);
+        if (recipientUserName && userName && groupName) {
+            const chatId = "15468";
+            const toFindSender = { userName, 'groups.groupName': { $nin: [recipientUserName] } };
+            const toUpdateSender = { $push: { 'groups': { groupName } } };
+            const toFindRecipient = { userName: recipientUserName, 'groups.recipientUserName': { $nin: [userName] } };
+            const toUpdateRecipient = { $push: { 'groups': { recipientUserName: userName, chatId } } };
+            const chatInsert = { chatId };
+            console.log("entered models/chats");
+            return Promise.all([
+                dbUtils_1.dbUtils.getCollection(UserListCollection),
+                dbUtils_1.dbUtils.getCollection(ChatListCollection)
+            ])
+                .then((collection) => {
+                const userListCollection = collection[0];
+                const userChatCollection = collection[1];
+                return this.checkUserAvailability(userListCollection, recipientUserName)
+                    .then((data) => {
+                    if (data === 'true') {
+                        return Promise.all([
+                            userListCollection.findOneAndUpdate(toFindSender, toUpdateSender),
+                            userListCollection.findOneAndUpdate(toFindRecipient, toUpdateRecipient),
+                            userChatCollection.insertOne(chatInsert)
+                        ])
+                            .then(data => {
+                            if (data && data[0] && data[1] && data[0].lastErrorObject && data[0].lastErrorObject.n > 0 && data[1].lastErrorObject && data[1].lastErrorObject.n > 0) {
+                                return 'true';
+                            }
+                            return 'The recipient is already added';
+                        })
+                            .catch(err => {
+                            console.log(err);
+                            return 'An error occured while fetching collection results';
+                        });
+                    }
+                    return data;
+                })
+                    .catch(err => {
+                    console.log(err);
+                    return 'An error occured while fetching collection results';
+                });
+            });
+        }
+    }
 }
 const ChatModel = new ChatModelEvents();
 exports.ChatModel = ChatModel;
