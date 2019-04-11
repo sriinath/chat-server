@@ -23,6 +23,12 @@ interface UserChatType {
     time: TimeRanges
 }
 interface GroupChatType extends ChatType {
+    chatId: string
+    groupName: string
+    chats: [groupChat]
+}
+interface groupChat {
+    userName: string
     accepted: boolean
     owner: string
 }

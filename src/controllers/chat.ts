@@ -49,6 +49,20 @@ class ChatControllerObject {
             return Promise.resolve('username, recipient username and isfavorites is mandatory')
         }
     }
+    addGrpMemberChats({recipientUserName ,addGrpMember, groupName}: { recipientUserName: string, addGrpMember: string, groupName: string}) {
+        if(recipientUserName && addGrpMember && groupName) {
+            return ChatModel.addGrpMemberChats(recipientUserName, addGrpMember, groupName)
+        }
+        else {
+            return Promise.resolve('username, groupName and groupMember is mandatory')
+        }
+    }
+    // get all the user data
+    // @param limit - number of users to be returned
+    // @param offset - the user from the list from where to start
+    getUserList = (limit?: number, offset?: number) => {
+        return ChatModel.getUserList(limit, offset)
+    }
 }
 const ChatController = new ChatControllerObject()
 export {
