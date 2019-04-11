@@ -42,8 +42,11 @@ const dbUtils = {
             return Promise.resolve('Colllection name is not valid string');
         }
     },
-    findData(collection, query) {
-        return collection.find(query, { fields: { _id: 0 } }).toArray()
+    findData(collection, query, limit, offset) {
+        return collection.find(query, { fields: { _id: 0 } })
+            .limit(limit)
+            .skip(offset)
+            .toArray()
             .then(data => {
             return data;
         })
@@ -52,10 +55,12 @@ const dbUtils = {
             return 'An error occured while fetching collection results';
         });
     },
-    getData(collectionName, toFind) {
+    getData(collectionName, toFind, limit, offset) {
+        const limitValue = limit || 20;
+        const skip = offset || 0;
         // find data is a callback method
         const findData = (collection) => {
-            return dbUtils.findData(collection, toFind);
+            return dbUtils.findData(collection, toFind, limitValue, skip);
         };
         return dbUtils.connectDBCollection(collectionName, findData);
     }

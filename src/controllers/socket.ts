@@ -26,6 +26,11 @@ class SocketController {
         this.socket.on('message', (data) => this.newMessage(data))
         this.socket.on('addFavorites', (recipientUserName, isFavorites) => this.addUserAsFavorites(recipientUserName, isFavorites))
         this.socket.on('userDataUpdate', (data) => this.updateUserData(data))
+        this.socket.on('getUserList', (limit?: number, offset?: number) => {
+            ChatController.getUserList(limit, offset)
+            .then(data => this.socket.emit('userList', data))
+            .catch(err => console.log(err))
+        })
         // when user enters the chat with another user or in group 
         this.socket.on('enter_chat', ({ chatId }) => {
             this.socket.join(`${chatId}`)
@@ -77,6 +82,7 @@ class SocketController {
                     this.userData = data[0]
                     this.socketChatEvents()
                     this.socket.join(this.userName)
+                    this.socket.emit('userData', data)
                 }
                 else {
                     console.log('chat events are skipped')
@@ -117,7 +123,6 @@ class SocketController {
         //     console.log('cannot send message to self at present')
         //     return
         // }
-        console.log(this.userData)
         const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : []
         if(checkRecipient.length) {
             const chatId = checkRecipient[0].chatId

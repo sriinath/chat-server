@@ -57,6 +57,12 @@ class ChatControllerObject {
             return Promise.resolve('username, groupName and groupMember is mandatory')
         }
     }
+    // get all the user data
+    // @param limit - number of users to be returned
+    // @param offset - the user from the list from where to start
+    getUserList = (limit?: number, offset?: number) => {
+        return ChatModel.getUserList(limit, offset)
+    }
 }
 const ChatController = new ChatControllerObject()
 export {
