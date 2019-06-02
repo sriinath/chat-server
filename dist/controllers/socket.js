@@ -5,21 +5,16 @@ const uuidv1 = require('uuid/v1');
 class SocketController {
     constructor(socketIO, socket, userName) {
         this.userName = 'Anonymous';
-        this.groupName = [];
         this.userData = {
             userName: this.userName
         };
         this.socketChatEvents = () => {
             // when user adds a new chat
-            this.socket.on('new_chat', (chatId) => this.newChat(chatId));
+            console.log();
+            this.socket.on('new_chat', ({ recipientUserName }) => this.newChat(recipientUserName));
             this.socket.on('message', (data) => this.newMessage(data));
             this.socket.on('addFavorites', (recipientUserName, isFavorites) => this.addUserAsFavorites(recipientUserName, isFavorites));
             this.socket.on('userDataUpdate', (data) => this.updateUserData(data));
-            this.socket.on('getUserList', (limit, offset) => {
-                chat_1.ChatController.getUserList(limit, offset)
-                    .then(data => this.socket.emit('userList', data))
-                    .catch(err => console.log(err));
-            });
             // when user enters the chat with another user or in group 
             this.socket.on('enter_chat', ({ chatId }) => {
                 this.socket.join(`${chatId}`);
@@ -36,20 +31,6 @@ class SocketController {
                 console.log(this.userName + " message sent " + message);
                 SocketController.socketIO.emit('chat_message', '<strong>' + this.userName + '</strong>: ' + message);
             });
-            this.socket.on('create', (room) => {
-                if (this.groupName.indexOf(room) > -1) {
-                    console.log('GroupExists!!!', room + ' Group is taken! Try some other Group name.');
-                }
-                else {
-                    this.groupName.push(room);
-                    console.log(this.userName + " Created Group " + this.groupName); //groupname, groupOwner - who created group? - db store
-                    SocketController.socketIO.emit('add_grp', room);
-                }
-            });
-            this.socket.on('send_invite', (addGrpMember) => {
-                SocketController.socketIO.sockets.in(addGrpMember).emit('got_invite', addGrpMember, this.groupName);
-            });
-            this.socket.on('add_user_to_grp', (recipientUserName, addGrpMember, groupName) => this.addUserToGrp(recipientUserName, addGrpMember, groupName));
         };
         this.updateUserData = (data) => {
             if (!this.userData.chats) {
@@ -70,7 +51,6 @@ class SocketController {
                         this.userData = data[0];
                         this.socketChatEvents();
                         this.socket.join(this.userName);
-                        this.socket.emit('userData', data);
                     }
                     else {
                         console.log('chat events are skipped');
@@ -83,8 +63,8 @@ class SocketController {
             }
         };
         // when user opens a chat of a particular user
-        this.newChat = (chatId) => {
-            const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.chatId === chatId) : [];
+        this.newChat = (recipientUserName) => {
+            const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : [];
             if (checkRecipient.length) {
                 // socket.join(recipientUserName)
                 const chatId = checkRecipient[0].chatId;
@@ -109,6 +89,7 @@ class SocketController {
             //     console.log('cannot send message to self at present')
             //     return
             // }
+            console.log(this.userData);
             const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : [];
             if (checkRecipient.length) {
                 const chatId = checkRecipient[0].chatId;
@@ -163,18 +144,6 @@ class SocketController {
         this.addUserAsFavorites = (recipientUserName, isFavorites) => {
             if (this.userName && recipientUserName && isFavorites) {
                 chat_1.ChatController.addFavouritesChat({ userName: this.userName, recipientUserName, isFavorites })
-                    .then((data) => {
-                    console.log(data);
-                })
-                    .catch((err) => {
-                    console.log('error logged');
-                    console.log(err);
-                });
-            }
-        };
-        this.addUserToGrp = (recipientUserName, addGrpMember, groupName) => {
-            if (addGrpMember && groupName) {
-                chat_1.ChatController.addGrpMemberChats({ recipientUserName, addGrpMember, groupName })
                     .then((data) => {
                     console.log(data);
                 })

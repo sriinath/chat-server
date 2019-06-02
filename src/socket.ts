@@ -10,7 +10,6 @@ module.exports = (server: Server) => {
     socketIO.on('connection', async socket => {
         let userName = redull.getVal(socket, 'handshake.query.userName') || 'Anonymous'
         console.log(`new user connected ${userName}`)
-        socket.emit('connection')
         socket.on('get_chat_list', () => new SocketController(socketIO, socket, userName).getChatList())
     })
 }
