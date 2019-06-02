@@ -11,7 +11,7 @@ class SocketController {
         };
         this.socketChatEvents = () => {
             // when user adds a new chat
-            this.socket.on('new_chat', ({ recipientUserName }) => this.newChat(recipientUserName));
+            this.socket.on('new_chat', (chatId) => this.newChat(chatId));
             this.socket.on('message', (data) => this.newMessage(data));
             this.socket.on('addFavorites', (recipientUserName, isFavorites) => this.addUserAsFavorites(recipientUserName, isFavorites));
             this.socket.on('userDataUpdate', (data) => this.updateUserData(data));
@@ -83,8 +83,8 @@ class SocketController {
             }
         };
         // when user opens a chat of a particular user
-        this.newChat = (recipientUserName) => {
-            const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.recipientUserName === recipientUserName) : [];
+        this.newChat = (chatId) => {
+            const checkRecipient = this.userData && this.userData.chats && this.userData.chats.length > 0 ? this.userData.chats.filter(chat => chat.chatId === chatId) : [];
             if (checkRecipient.length) {
                 // socket.join(recipientUserName)
                 const chatId = checkRecipient[0].chatId;
