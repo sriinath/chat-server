@@ -41,8 +41,11 @@ const dbUtils = {
             return Promise.resolve('Colllection name is not valid string')
         }
     },
-    findData(collection: mongoDB.Collection, query: Object) {
-        return collection.find(query, { fields: {_id: 0} } ).toArray()
+    findData(collection: mongoDB.Collection, query: Object, limit?: number, offset?: number) {
+        return collection.find(query, { fields: {_id: 0} } )
+        .limit(limit)
+        .skip(offset)
+        .toArray()
         .then(data => {
             return data
         })
@@ -51,10 +54,12 @@ const dbUtils = {
             return 'An error occured while fetching collection results'
         })
     },
-    getData(collectionName: string, toFind: Object) {
+    getData(collectionName: string, toFind: Object, limit?: number, offset?: number) {
+        const limitValue = limit || 20 
+        const skip = offset || 0
         // find data is a callback method
         const findData = (collection: mongoDB.Collection) => {
-            return dbUtils.findData(collection, toFind)
+            return dbUtils.findData(collection, toFind, limitValue, skip)
         }
         return dbUtils.connectDBCollection(collectionName, findData)
     }
