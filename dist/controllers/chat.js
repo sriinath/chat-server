@@ -2,14 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const chat_1 = require("../models/chat");
 class ChatControllerObject {
-    constructor() {
-        // get all the user data
-        // @param limit - number of users to be returned
-        // @param offset - the user from the list from where to start
-        this.getUserList = (limit, offset) => {
-            return chat_1.ChatModel.getUserList(limit, offset);
-        };
-    }
     // get all the user chat list / friends list for a user
     getUserChatList(userName) {
         if (userName) {
@@ -52,14 +44,6 @@ class ChatControllerObject {
         }
         else {
             return Promise.resolve('username, recipient username and isfavorites is mandatory');
-        }
-    }
-    addGrpMemberChats({ recipientUserName, addGrpMember, groupName }) {
-        if (recipientUserName && addGrpMember && groupName) {
-            return chat_1.ChatModel.addGrpMemberChats(recipientUserName, addGrpMember, groupName);
-        }
-        else {
-            return Promise.resolve('username, groupName and groupMember is mandatory');
         }
     }
 }
